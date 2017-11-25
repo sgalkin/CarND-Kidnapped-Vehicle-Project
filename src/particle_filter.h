@@ -1,122 +1,84 @@
-/*
- * particle_filter.h
- *
- * 2D particle filter class.
- *  Created on: Dec 12, 2016
- *      Author: Tiffany Huang
- */
+#pragma once
 
-#ifndef PARTICLE_FILTER_H_
-#define PARTICLE_FILTER_H_
+#include <vector>
+#include "measurement.h"
+#include "noise.h"
+#include "map.h"
 
-#include "helper_functions.h"
-
-struct Particle {
-
-	int id;
-	double x;
-	double y;
-	double theta;
-	double weight;
-	std::vector<int> associations;
-	std::vector<double> sense_x;
-	std::vector<double> sense_y;
-};
-
-
-
-class ParticleFilter {
-	
-	// Number of particles to draw
-	int num_particles; 
-	
-	
-	
-	// Flag, if filter is initialized
-	bool is_initialized;
-	
-	// Vector of weights of all particles
-	std::vector<double> weights;
-	
+class Particle {
 public:
-	
-	// Set of current particles
-	std::vector<Particle> particles;
+  using Associations = std::vector<Landmark>;
+  
+  Particle();
+  explicit Particle(Position p, double w = 1.0);
 
-	// Constructor
-	// @param num_particles Number of particles
-	ParticleFilter() : num_particles(0), is_initialized(false) {}
+  void predict(const Control& c, const Interval& dt, Position noise);
+  void update(const Observation& noisy, Point sigma, const Map& map, double range);
 
-	// Destructor
-	~ParticleFilter() {}
+  double weight() const { return weight_; }
+  Position position() const { return position_; }
+  const Associations& associations() const { return associations_; }
+  
+private:
+  void associate(Observation o, const Map& map, double range);
+  void weight(const Map& map, Point sigma);
 
-	/**
-	 * init Initializes particle filter by initializing particles to Gaussian
-	 *   distribution around first position and all the weights to 1.
-	 * @param x Initial x position [m] (simulated estimate from GPS)
-	 * @param y Initial y position [m]
-	 * @param theta Initial orientation [rad]
-	 * @param std[] Array of dimension 3 [standard deviation of x [m], standard deviation of y [m]
-	 *   standard deviation of yaw [rad]]
-	 */
-	void init(double x, double y, double theta, double std[]);
-
-	/**
-	 * prediction Predicts the state for the next time step
-	 *   using the process model.
-	 * @param delta_t Time between time step t and t+1 in measurements [s]
-	 * @param std_pos[] Array of dimension 3 [standard deviation of x [m], standard deviation of y [m]
-	 *   standard deviation of yaw [rad]]
-	 * @param velocity Velocity of car from t to t+1 [m/s]
-	 * @param yaw_rate Yaw rate of car from t to t+1 [rad/s]
-	 */
-	void prediction(double delta_t, double std_pos[], double velocity, double yaw_rate);
-	
-	/**
-	 * dataAssociation Finds which observations correspond to which landmarks (likely by using
-	 *   a nearest-neighbors data association).
-	 * @param predicted Vector of predicted landmark observations
-	 * @param observations Vector of landmark observations
-	 */
-	void dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations);
-	
-	/**
-	 * updateWeights Updates the weights for each particle based on the likelihood of the 
-	 *   observed measurements. 
-	 * @param sensor_range Range [m] of sensor
-	 * @param std_landmark[] Array of dimension 2 [Landmark measurement uncertainty [x [m], y [m]]]
-	 * @param observations Vector of landmark observations
-	 * @param map Map class containing map landmarks
-	 */
-	void updateWeights(double sensor_range, double std_landmark[], const std::vector<LandmarkObs> &observations,
-			const Map &map_landmarks);
-	
-	/**
-	 * resample Resamples from the updated set of particles to form
-	 *   the new set of particles.
-	 */
-	void resample();
-
-	/*
-	 * Set a particles list of associations, along with the associations calculated world x,y coordinates
-	 * This can be a very useful debugging tool to make sure transformations are correct and assocations correctly connected
-	 */
-	Particle SetAssociations(Particle& particle, const std::vector<int>& associations,
-		                     const std::vector<double>& sense_x, const std::vector<double>& sense_y);
-
-	
-	std::string getAssociations(Particle best);
-	std::string getSenseX(Particle best);
-	std::string getSenseY(Particle best);
-
-	/**
-	* initialized Returns whether particle filter is initialized yet or not.
-	*/
-	const bool initialized() const {
-		return is_initialized;
-	}
+private:
+  double weight_;
+  Position position_;
+  Associations associations_;
 };
 
 
+template<typename Parameters, typename Engine>
+class Filter {
+  using State = std::vector<Particle>;
+  
+public:
+  Filter(const Position& p, size_t N, const Map& map, Engine engine) :
+    map_{map},
+    engine_{std::move(engine)} {
+    state_.reserve(N);
+    std::generate_n(std::back_inserter(state_), N,
+                    [this, &p]{
+                      return Particle{p + noise(Parameters::position_sigma, engine_)};
+                    });
+  }
+  
+  void feed(Control c, Interval dt, Observation o) {
+    std::vector<double> w;
+    w.reserve(state_.size());
+    std::for_each(begin(state_), end(state_),
+                  [this, &c, &dt, &o, &w](State::value_type& p) {
+                    p.predict(c, dt, noise(Parameters::position_sigma, engine_));
+                    p.update(o, Parameters::landmark_sigma, map_, Parameters::sensor_range);
+                    w.push_back(p.weight());
+                  });
+    resample(std::move(w));
+  }
 
-#endif /* PARTICLE_FILTER_H_ */
+  const State::value_type& estimate() const {
+    return *std::max_element(begin(state_), end(state_),
+                             [](const typename State::value_type& lhs,
+                                const typename State::value_type& rhs) {
+                               return lhs.weight() < rhs.weight();
+                             });
+  }
+
+private:
+  void resample(std::vector<double> w) {
+    std::discrete_distribution<size_t> idx{begin(w), end(w)};
+    State state;
+    state.reserve(state_.size());
+    std::generate_n(std::back_inserter(state), state_.size(),
+                    [this, &idx]() {
+                      return state_[idx(engine_)];
+                    });
+    state_.swap(state);
+  }
+  
+private:
+  State state_;
+  const Map& map_;
+  Engine engine_;
+};

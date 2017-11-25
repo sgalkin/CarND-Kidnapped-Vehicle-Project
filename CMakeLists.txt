@@ -1,28 +1,77 @@
-project(PARTICLE_FILTER)
-
+project(particle_filter)
 cmake_minimum_required (VERSION 3.5)
+
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
+    message(FATAL_ERROR "GCC version must be at least 4.9!")
+  endif()
+endif()
 
 add_definitions(-std=c++11)
 
-set(CXX_FLAGS "-Wall")
-set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -O3 -g")
 
-set(sources src/particle_filter.cpp src/main.cpp)
+set(main
+  src/main.cpp)
 
+set(test
+  test/main.cpp)
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
+set(sources
+  src/application.h
+  src/protocol.h
+  src/protocol.cpp
+  src/map.h
+  src/map.cpp
+  src/point.h
+  src/point.cpp
+  src/parameters.h
+  src/parameters.cpp
+  src/measurement.h
+  src/measurement.cpp
+  src/particle_filter.h
+  src/particle_filter.cpp
+  src/noise.h
+  )
 
-include_directories(/usr/local/include)
-include_directories(/usr/local/opt/openssl/include)
-link_directories(/usr/local/lib)
-link_directories(/usr/local/opt/openssl/lib)
-link_directories(/usr/local/Cellar/libuv/1*/lib)
+set(tests
+  test/test_point.cpp
+  test/test_map.cpp
+  test/test_particle_filter.cpp
+  test/test_measurement.cpp
+  test/test_noise.cpp
+  )
 
-endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  execute_process(COMMAND brew --prefix openssl
+    OUTPUT_VARIABLE OPENSSL_ROOT_DIR)
+  string(STRIP ${OPENSSL_ROOT_DIR} OPENSSL_ROOT_DIR)
+endif()
 
+find_package(ZLIB REQUIRED)
+find_package(OpenSSL REQUIRED)
 
-add_executable(particle_filter ${sources})
+include_directories(${OPENSSL_INCLUDE_DIR})
 
+find_library(UWS_LIB uWS)
+if(NOT UWS_LIB)
+  message(FATAL_ERROR "uWS library not found")
+endif()
 
-target_link_libraries(particle_filter z ssl uv uWS)
+find_library(UV_LIB uv)
+if(NOT UV_LIB)
+  message(FATAL_ERROR "uv library not found")
+endif()
 
+set(TEST_NAME "Test")
+add_executable(${CMAKE_PROJECT_NAME} ${sources} ${main})
+add_executable(${TEST_NAME} ${sources} ${tests} ${test})
+
+enable_testing()
+add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+
+target_link_libraries(${CMAKE_PROJECT_NAME}
+  ${ZLIB_LIBRARIES} 
+  ${OPENSSL_LIBRARIES} 
+  ${UV_LIB}
+  ${UWS_LIB})

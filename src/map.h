@@ -1,27 +1,41 @@
-/*
- * map.h
- *
- *  Created on: Dec 12, 2016
- *      Author: mufferm
- */
+#pragma once
 
-#ifndef MAP_H_
-#define MAP_H_
+#include <string>
+#include <vector>
+#include <limits>
+#include <unordered_map>
+
+#include "point.h"
+
+// Struct representing one landmark observation measurement.
+struct Landmark {
+  int id;          // Id of matching landmark in the map.
+  Point position;  // Position of landmark
+};
 
 class Map {
 public:
-	
-	struct single_landmark_s{
+  using Storage = std::vector<Landmark>;
+  enum { INVALID_ID = std::numeric_limits<decltype(Landmark::id)>::min() }; // TODO: optional
 
-		int id_i ; // Landmark ID
-		float x_f; // Landmark x-position in the map (global coordinates)
-		float y_f; // Landmark y-position in the map (global coordinates)
-	};
+public:
+  Map();
+  explicit Map(Storage lm);
 
-	std::vector<single_landmark_s> landmark_list ; // List of landmarks in the map
-
+  size_t size() const { return map_.size(); }
+  
+  const Landmark& operator[] (size_t id) const { return map_[idx_.at(id)]; }
+  const Landmark& nearest(const Point& pnt, double range) const;
+  
+private:
+  Storage map_;
+  std::unordered_map<size_t, size_t> idx_;
 };
 
+Map read_map(const std::string& filename);
 
-
-#endif /* MAP_H_ */
+template<typename IS>
+IS& operator>> (IS& is, Landmark& lm) {
+  is >> lm.position >> lm.id;
+  return is;
+}
