@@ -6,4 +6,4 @@
 
 # Run particle filter
 cd ./build
-./particle_filter
+./particle_filter -m ../data/map_data.txt
