@@ -10,7 +10,7 @@
 
 template<typename Protocol, typename Parameters, typename Engine>
 class Application {
-  using Filter = Filter<Parameters, Engine>;
+  using Filter = ::Filter<Parameters, Engine>;
 
 public:
   explicit Application(const Map& map, Engine e) :

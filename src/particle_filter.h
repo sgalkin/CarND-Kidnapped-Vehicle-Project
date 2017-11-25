@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include <algorithm>
+#include <functional>
 #include "measurement.h"
 #include "noise.h"
 #include "map.h"

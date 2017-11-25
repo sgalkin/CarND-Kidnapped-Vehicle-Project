@@ -1,5 +1,6 @@
 #include "map.h"
-
+#include <algorithm>
+#include <iterator>
 #include <fstream>
 
 namespace {
@@ -46,7 +47,7 @@ const Landmark& Map::nearest(const Point& pnt, double range) const {
 
 Map read_map(const std::string& filename) {
   std::ifstream in(filename.c_str());
-  in.exceptions(in.failbit);
+  if(!in) throw std::ios::failure("unable to open file");
 
   std::vector<Landmark> map;
   std::copy(std::istream_iterator<Landmark>(in),

@@ -1,4 +1,5 @@
 #include "measurement.h"
+#include <algorithm>
 #include <cmath>
 
 Position operator+ (Position lhs, Position rhs) {

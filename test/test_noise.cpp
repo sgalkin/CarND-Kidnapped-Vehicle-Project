@@ -1,6 +1,7 @@
 #include "catch.hpp"
 
 #include <random>
+#include <algorithm>
 #include "../src/noise.h"
 
 TEST_CASE("Point Noise") {
