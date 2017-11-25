@@ -35,11 +35,11 @@ class Filter {
   using State = std::vector<Particle>;
   
 public:
-  Filter(const Position& p, size_t N, const Map& map, Engine engine) :
+  Filter(const Position& p, const Map& map, Engine engine) :
     map_{map},
     engine_{std::move(engine)} {
-    state_.reserve(N);
-    std::generate_n(std::back_inserter(state_), N,
+    state_.reserve(Parameters::particles_number);
+    std::generate_n(std::back_inserter(state_), Parameters::particles_number,
                     [this, &p]{
                       return Particle{p + noise(Parameters::position_sigma, engine_)};
                     });

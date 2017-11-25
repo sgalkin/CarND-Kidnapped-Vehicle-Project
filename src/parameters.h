@@ -4,6 +4,9 @@
 #include "measurement.h"
 
 struct Parameters {
+  // Number of particles in the filter
+  static constexpr size_t particles_number{75};
+  
   // GPS measurement uncertainty [x [m], y [m], theta [rad]]
   static const Position position_sigma;
 

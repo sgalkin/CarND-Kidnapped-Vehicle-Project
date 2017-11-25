@@ -10,7 +10,6 @@
 
 template<typename Protocol, typename Parameters, typename Engine>
 class Application {
-  static constexpr size_t N = 75;
   using Filter = Filter<Parameters, Engine>;
 
 public:
@@ -40,7 +39,7 @@ private:
     const auto& o = std::get<2>(measurement);
     
     if(!filter_) {
-      filter_.reset(new Filter(p, N, map_, engine_));
+      filter_.reset(new Filter(p, map_, engine_));
     } else {
       filter_->feed(std::move(c), Parameters::dt, std::move(o));
     }
