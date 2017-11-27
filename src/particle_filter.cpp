@@ -9,6 +9,7 @@ Particle::Particle(Position p, double w) :
 {}
 
 void Particle::predict(const Control& c, const Interval& dt, Position noise) {
+  // TODO: Add measurements to each particle and add random Gaussian noise.
   position_ = move(std::move(position_), c, dt) + std::move(noise);
 }
 
@@ -18,6 +19,8 @@ void Particle::update(const Observation& noisy, Point sigma, const Map& map, dou
 }
 
 void Particle::associate(Observation o, const Map& map, double range) {
+  // TODO: Find the predicted measurement that is closest to each observed measurement
+  //       and assign the observed measurement to this particular landmark.
   Associations().swap(associations_);
   associations_.reserve(o.size());
   std::transform(begin(o), end(o), std::back_inserter(associations_),
@@ -27,6 +30,7 @@ void Particle::associate(Observation o, const Map& map, double range) {
 }
 
 void Particle::weight(const Map& map, Point sigma) {
+  // TODO: Update the weights of each particle using a mult-variate Gaussian distribution.
   weight_ = std::accumulate(begin(associations_), end(associations_), 1.,
                             [&map, sigma](double w, const Associations::value_type& v) {
                               if(w == 0 || v.id == Map::INVALID_ID) return 0.;

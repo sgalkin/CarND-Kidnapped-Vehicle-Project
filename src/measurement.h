@@ -20,6 +20,10 @@ struct Position {
 Position operator+ (Position lhs, Position rhs);
 
 using Observation = std::vector<Point>;
+
+Observation operator+ (Observation o, const Point& p);
+Observation operator+ (const Point&p, Observation o);
+
 using Measurement = std::tuple<Position, Control, Observation>;
 using Interval = std::chrono::duration<double>;
 

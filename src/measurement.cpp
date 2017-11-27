@@ -6,6 +6,19 @@ Position operator+ (Position lhs, Position rhs) {
   return Position{lhs.point + rhs.point, lhs.theta + rhs.theta};
 }
 
+Observation operator+ (Observation o, const Point& p) {
+  std::for_each(std::make_move_iterator(begin(o)),
+                std::make_move_iterator(end(o)),
+                [&p](Observation::value_type&& v) {
+                  return std::move(v) + p;
+                });
+  return o;
+}
+
+Observation operator+ (const Point&p, Observation o) {
+  return std::move(o) + p;
+}
+
 Position move(Position p, Control c, const Interval& duration) {
   auto dt = duration.count();
   auto dtheta = c.yawrate * dt / 2;
