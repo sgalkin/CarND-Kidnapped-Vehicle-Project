@@ -1,5 +1,6 @@
 # Kidnapped Vehicle Project
 [![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
+[![CircleCI](https://circleci.com/gh/sgalkin/CarND-T2P3.svg?style=svg&circle-token=ec4a862f1ebe95c2e269fff5c9ad26c579558837)](https://circleci.com/gh/sgalkin/CarND-T2P3)
 
 ## Overview
 This project implements  2 dimensional particle filter in C++ to estimate
